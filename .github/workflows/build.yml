@@ -52,16 +52,16 @@ jobs:
 
       - name: Build Kernel
         run: |
-          # Set architecture to 64-bit as required by your setup
           export ARCH=arm64
-          
-          echo "Cleaning workspace..."
+          # This forces the build to use the working compiler we installed via apt
+          export CROSS_COMPILE=aarch64-linux-gnu-
           
           echo "Applying exynos850-a13xx_defconfig..."
           make O=out exynos850-a13xx_defconfig
           
           echo "Starting compilation on all CPU cores..."
           make -j$(nproc --all) O=out
+          
 
       - name: Upload Kernel Artifact
         uses: actions/upload-artifact@v4
