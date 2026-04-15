@@ -1,0 +1,30 @@
+name : Kernel-Source
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            gcc-aarch64-linux-gnu \
+            make bc libssl-dev \
+            libelf-dev bison flex \
+            python3 zip unzip wget
+
+      - name: Download kernel source
+        run: |
+          wget -O Kernel.tar.gz \
+            "https://github.com/Moonknight982/SM-A13F-KERNELSOURCE/releases/download/v1/Kernel.tar.gz"
+
+      - name: Extract kernel source
+        run: |
+          tar -xzf Kernel.tar.gz -c SM-A13F-Kernel_Sauce
