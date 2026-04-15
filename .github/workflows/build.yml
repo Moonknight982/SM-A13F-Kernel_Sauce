@@ -1,56 +1,67 @@
-name: Kernel-Source
+name: Compile Custom Kernel
 
 on:
   workflow_dispatch:
 
-# Add these permissions to allow pushing code
-permissions:
-  contents: write
-
 jobs:
   build:
+    name: Build Kernel
     runs-on: ubuntu-22.04
 
     steps:
-      - name: Checkout repo
+      - name: Checkout Source Code
         uses: actions/checkout@v4
-        with:
-          # Fetch all history so push doesn't fail
-          fetch-depth: 0
 
-      - name: Install dependencies
+      - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            gcc-aarch64-linux-gnu \
-            make bc libssl-dev \
-            libelf-dev bison flex \
-            python3 zip unzip wget
+          sudo apt-get install -y gcc-aarch64-linux-gnu make bc libssl-dev libelf-dev bison flex python3 zip unzip wget curl lld llvm
 
-      - name: Download kernel source
+      - name: Download Google Clang (r383902)
         run: |
-          wget -O Kernel.tar.gz \
-            "https://github.com/Moonknight982/SM-A13F-KERNELSOURCE/releases/download/v1/Kernel.tar.gz"
+          echo "Downloading exact Clang version required by Makefile..."
+          mkdir -p toolchain/clang/host/linux-x86/clang-r383902
+          wget -O clang.tar.gz "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/tags/android-11.0.0_r48/clang-r383902.tar.gz"
+          tar -C toolchain/clang/host/linux-x86/clang-r383902/ -xzf clang.tar.gz
+          rm clang.tar.gz
 
-      - name: Extract kernel source
+      - name: Download AOSP GCC (4.9)
         run: |
-          # Use --strip-components if the tar has a nested folder you want to flatten
-          tar -xzf Kernel.tar.gz -C .
-          rm Kernel.tar.gz # Remove the archive so you don't commit the zip itself
+          echo "Downloading AOSP GCC 4.9 required by Makefile..."
+          mkdir -p toolchain/gcc/linux-x86/aarch64
+          git clone --depth 1 https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9 toolchain/gcc/linux-x86/aarch64/aarch64-linux-android-4.9
 
-      - name: Configure Git Identity
+      - name: Patch Defconfig for Droidspaces
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          echo "Injecting Droidspaces support into the defconfig..."
+          CONFIG_FILE="arch/arm64/configs/exynos850-a13xx_defconfig"
+          echo "CONFIG_IPC_NS=y" >> $CONFIG_FILE
+          echo "CONFIG_BRIDGE=y" >> $CONFIG_FILE
+          echo "CONFIG_STP=y" >> $CONFIG_FILE
+          echo "CONFIG_USER_NS=y" >> $CONFIG_FILE
+          echo "CONFIG_NAMESPACES=y" >> $CONFIG_FILE
 
-      - name: Commit and Push Extracted Files
+      - name: Build Kernel
         run: |
-          git add .
-          # Check if there are changes before committing to avoid errors
-          if git diff --staged --quiet; then
-            echo "No changes to commit"
-          else
-            git commit -m "Add extracted kernel source"
-            git push origin main
-          fi
+          # Set architecture to 64-bit as required by your setup
+          export ARCH=arm64
+          
+          echo "Cleaning workspace..."
+          make O=out clean
+          
+          echo "Applying exynos850-a13xx_defconfig..."
+          make O=out exynos850-a13xx_defconfig
+          
+          echo "Starting compilation on all CPU cores..."
+          make -j$(nproc --all) O=out
+
+      - name: Upload Kernel Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Compiled-Kernel-Image
+          path: |
+            out/arch/arm64/boot/Image
+            out/arch/arm64/boot/Image.gz
+            out/arch/arm64/boot/dts/exynos/*.dtb
+          compression-level: 9
           
