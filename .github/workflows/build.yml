@@ -27,4 +27,4 @@ jobs:
 
       - name: Extract kernel source
         run: |
-          tar -xzf Kernel.tar.gz -c SM-A13F-Kernel_Sauce
+          tar -xzf Kernel.tar.gz -C SM-A13F-Kernel_Sauce
