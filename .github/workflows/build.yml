@@ -20,14 +20,15 @@ jobs:
             libelf-dev bison flex python3 zip unzip \
             wget curl lld llvm libncurses5 libncurses-dev dos2unix
 
-      - name: Clean Samsung Source Code (Line Endings & Merge Conflicts)
+      - name: Clean Samsung Source Code (The Nuclear Option)
         run: |
-          echo "Converting all Kconfig and shell scripts to Linux format..."
+          echo "Fixing invisible Windows carriage returns..."
           find . -type f \( -name "Kconfig*" -o -name "*.sh" -o -name "Makefile*" \) -exec dos2unix {} +
           
-          echo "Fixing Git merge conflict markers left by Samsung engineers..."
-          # This scans every Kconfig and Makefile and automatically resolves broken <<<<<<< markers
-          find . -type f \( -name "Kconfig*" -o -name "Makefile*" \) -exec sed -i '/^=======/,/^>>>>>>>/d; /^<<<<<<</d' {} +
+          echo "Obliterating Samsung's broken GPU config..."
+          echo 'menu "ARM GPU Configuration"' > drivers/gpu/arm/Kconfig
+          echo 'source "drivers/gpu/arm/bv_r38p1/Kconfig"' >> drivers/gpu/arm/Kconfig
+          echo 'endmenu' >> drivers/gpu/arm/Kconfig
 
       - name: Patch Defconfig & Fix Broken Paths
         run: |
