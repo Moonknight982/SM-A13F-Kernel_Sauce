@@ -18,7 +18,8 @@ jobs:
           sudo apt-get install -y \
             gcc-aarch64-linux-gnu make bc libssl-dev \
             libelf-dev bison flex python3 zip unzip \
-            wget curl lld llvm libncurses5 libncurses-dev
+            wget curl lld llvm libncurses5 libncurses-dev dos2unix
+            
 
             
       - name: Download Google Clang (r383902)
@@ -50,17 +51,25 @@ jobs:
           touch drivers/input/touchscreen/himax/himax_83xxx_i2c/Makefile
           
 
+      - name: Fix Windows Line Endings
+        run: |
+          echo "Converting Kconfig and Scripts to Linux format..."
+          find . -type f -name "Kconfig*" -exec dos2unix {} +
+          find . -type f -name "*.sh" -exec dos2unix {} +
+          dos2unix Makefile
+
       - name: Build Kernel
         run: |
           export ARCH=arm64
-          # This forces the build to use the working compiler we installed via apt
           export CROSS_COMPILE=aarch64-linux-gnu-
           
           echo "Applying exynos850-a13xx_defconfig..."
-          make O=out exynos850-a13xx_defconfig
+          # Pass LLVM=1 and CC=clang so it uses the modern compiler we downloaded
+          make O=out LLVM=1 CC=clang exynos850-a13xx_defconfig
           
           echo "Starting compilation on all CPU cores..."
-          make -j$(nproc --all) O=out
+          make -j$(nproc --all) O=out LLVM=1 CC=clang
+          
           
 
       - name: Upload Kernel Artifact
