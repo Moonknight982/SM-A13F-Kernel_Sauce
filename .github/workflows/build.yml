@@ -31,7 +31,7 @@ jobs:
           mkdir -p toolchain/gcc/linux-x86/aarch64
           git clone --depth 1 https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9 toolchain/gcc/linux-x86/aarch64/aarch64-linux-android-4.9
 
-      - name: Patch Defconfig for Droidspaces
+      - name: Patch Defconfig & Fix Broken Paths
         run: |
           echo "Injecting Droidspaces support into the defconfig..."
           CONFIG_FILE="arch/arm64/configs/exynos850-a13xx_defconfig"
@@ -40,6 +40,11 @@ jobs:
           echo "CONFIG_STP=y" >> $CONFIG_FILE
           echo "CONFIG_USER_NS=y" >> $CONFIG_FILE
           echo "CONFIG_NAMESPACES=y" >> $CONFIG_FILE
+          
+          echo "Fixing Samsung's missing Himax directory..."
+          mkdir -p drivers/input/touchscreen/himax/himax_83xxx_i2c
+          touch drivers/input/touchscreen/himax/himax_83xxx_i2c/Makefile
+          
 
       - name: Build Kernel
         run: |
@@ -47,7 +52,6 @@ jobs:
           export ARCH=arm64
           
           echo "Cleaning workspace..."
-          make O=out clean
           
           echo "Applying exynos850-a13xx_defconfig..."
           make O=out exynos850-a13xx_defconfig
