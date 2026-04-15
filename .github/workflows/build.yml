@@ -3,6 +3,10 @@ name: Kernel-Source
 on:
   workflow_dispatch:
 
+# Add these permissions to allow pushing code
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-22.04
@@ -10,6 +14,9 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+        with:
+          # Fetch all history so push doesn't fail
+          fetch-depth: 0
 
       - name: Install dependencies
         run: |
@@ -27,15 +34,23 @@ jobs:
 
       - name: Extract kernel source
         run: |
+          # Use --strip-components if the tar has a nested folder you want to flatten
           tar -xzf Kernel.tar.gz -C .
+          rm Kernel.tar.gz # Remove the archive so you don't commit the zip itself
 
       - name: Configure Git Identity
         run: |
-          git config user.name "GitHub Actions"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
       - name: Commit and Push Extracted Files
         run: |
           git add .
-          git commit -m "Add extracted kernel source"
-          git push
+          # Check if there are changes before committing to avoid errors
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Add extracted kernel source"
+            git push origin main
+          fi
+          
