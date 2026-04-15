@@ -15,8 +15,12 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu make bc libssl-dev libelf-dev bison flex python3 zip unzip wget curl lld llvm
+          sudo apt-get install -y \
+            gcc-aarch64-linux-gnu make bc libssl-dev \
+            libelf-dev bison flex python3 zip unzip \
+            wget curl lld llvm libncurses5 libncurses-dev
 
+            
       - name: Download Google Clang (r383902)
         run: |
           echo "Downloading exact Clang version required by Makefile..."
