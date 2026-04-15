@@ -20,12 +20,14 @@ jobs:
             libelf-dev bison flex python3 zip unzip \
             wget curl lld llvm libncurses5 libncurses-dev dos2unix
 
-      - name: Fix Windows Line Endings (CRLF to LF)
+      - name: Clean Samsung Source Code (Line Endings & Merge Conflicts)
         run: |
           echo "Converting all Kconfig and shell scripts to Linux format..."
-          find . -type f -name "Kconfig*" -exec dos2unix {} +
-          find . -type f -name "*.sh" -exec dos2unix {} +
-          dos2unix Makefile
+          find . -type f \( -name "Kconfig*" -o -name "*.sh" -o -name "Makefile*" \) -exec dos2unix {} +
+          
+          echo "Fixing Git merge conflict markers left by Samsung engineers..."
+          # This scans every Kconfig and Makefile and automatically resolves broken <<<<<<< markers
+          find . -type f \( -name "Kconfig*" -o -name "Makefile*" \) -exec sed -i '/^=======/,/^>>>>>>>/d; /^<<<<<<</d' {} +
 
       - name: Patch Defconfig & Fix Broken Paths
         run: |
@@ -47,13 +49,10 @@ jobs:
           export CROSS_COMPILE=aarch64-linux-gnu-
           
           echo "Applying exynos850-a13xx_defconfig..."
-          # The LLVM=1 and CC=clang arguments MUST be on this line
           make O=out LLVM=1 CC=clang exynos850-a13xx_defconfig
           
           echo "Starting compilation on all CPU cores..."
-          # And they MUST be on this line too
           make -j$(nproc --all) O=out LLVM=1 CC=clang
-          
 
       - name: Upload Kernel Artifact
         uses: actions/upload-artifact@v4
