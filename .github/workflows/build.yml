@@ -47,11 +47,13 @@ jobs:
           export CROSS_COMPILE=aarch64-linux-gnu-
           
           echo "Applying exynos850-a13xx_defconfig..."
-          # The LLVM=1 and CC=clang flags are CRITICAL here!
+          # The LLVM=1 and CC=clang arguments MUST be on this line
           make O=out LLVM=1 CC=clang exynos850-a13xx_defconfig
           
           echo "Starting compilation on all CPU cores..."
+          # And they MUST be on this line too
           make -j$(nproc --all) O=out LLVM=1 CC=clang
+          
 
       - name: Upload Kernel Artifact
         uses: actions/upload-artifact@v4
