@@ -29,10 +29,13 @@ jobs:
         run: |
           tar -xzf Kernel.tar.gz -C .
 
+      - name: Configure Git Identity
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
       - name: Commit and Push Extracted Files
         run: |
-          git config user.email "actions@github.com"  # Generic email for bot commits
-          git config user.name "github-actions"      # Generic name for bot commits
           git add .
           git commit -m "Add extracted kernel source"
           git push
