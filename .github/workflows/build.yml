@@ -19,22 +19,13 @@ jobs:
             gcc-aarch64-linux-gnu make bc libssl-dev \
             libelf-dev bison flex python3 zip unzip \
             wget curl lld llvm libncurses5 libncurses-dev dos2unix
-            
 
-            
-      - name: Download Google Clang (r383902)
+      - name: Fix Windows Line Endings (CRLF to LF)
         run: |
-          echo "Downloading exact Clang version required by Makefile..."
-          mkdir -p toolchain/clang/host/linux-x86/clang-r383902
-          wget -O clang.tar.gz "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/tags/android-11.0.0_r48/clang-r383902.tar.gz"
-          tar -C toolchain/clang/host/linux-x86/clang-r383902/ -xzf clang.tar.gz
-          rm clang.tar.gz
-
-      - name: Download AOSP GCC (4.9)
-        run: |
-          echo "Downloading AOSP GCC 4.9 required by Makefile..."
-          mkdir -p toolchain/gcc/linux-x86/aarch64
-          git clone --depth 1 https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9 toolchain/gcc/linux-x86/aarch64/aarch64-linux-android-4.9
+          echo "Converting all Kconfig and shell scripts to Linux format..."
+          find . -type f -name "Kconfig*" -exec dos2unix {} +
+          find . -type f -name "*.sh" -exec dos2unix {} +
+          dos2unix Makefile
 
       - name: Patch Defconfig & Fix Broken Paths
         run: |
@@ -49,14 +40,6 @@ jobs:
           echo "Fixing Samsung's missing Himax directory..."
           mkdir -p drivers/input/touchscreen/himax/himax_83xxx_i2c
           touch drivers/input/touchscreen/himax/himax_83xxx_i2c/Makefile
-          
-
-      - name: Fix Windows Line Endings
-        run: |
-          echo "Converting Kconfig and Scripts to Linux format..."
-          find . -type f -name "Kconfig*" -exec dos2unix {} +
-          find . -type f -name "*.sh" -exec dos2unix {} +
-          dos2unix Makefile
 
       - name: Build Kernel
         run: |
@@ -64,13 +47,11 @@ jobs:
           export CROSS_COMPILE=aarch64-linux-gnu-
           
           echo "Applying exynos850-a13xx_defconfig..."
-          # Pass LLVM=1 and CC=clang so it uses the modern compiler we downloaded
+          # The LLVM=1 and CC=clang flags are CRITICAL here!
           make O=out LLVM=1 CC=clang exynos850-a13xx_defconfig
           
           echo "Starting compilation on all CPU cores..."
           make -j$(nproc --all) O=out LLVM=1 CC=clang
-          
-          
 
       - name: Upload Kernel Artifact
         uses: actions/upload-artifact@v4
