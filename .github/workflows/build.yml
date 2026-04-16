@@ -40,6 +40,13 @@ jobs:
           echo "CONFIG_USER_NS=y" >> $CONFIG_FILE
           echo "CONFIG_NAMESPACES=y" >> $CONFIG_FILE
           
+          echo "Disabling broken GPU Thermal hooks to allow linking..."
+          # These lines disable the thermal governor that was causing the linker error
+          echo "# CONFIG_EXYNOS_GPU_THERMAL is not set" >> $CONFIG_FILE
+          echo "# CONFIG_AMLOGIC_GPU_THERMAL is not set" >> $CONFIG_FILE
+          echo "# CONFIG_THERMAL_GOVERNOR_GPUFREQ is not set" >> $CONFIG_FILE
+          echo "CONFIG_GPU_THERMAL=n" >> $CONFIG_FILE
+          
           echo "Fixing Samsung's missing Himax directory..."
           mkdir -p drivers/input/touchscreen/himax/himax_83xxx_i2c
           touch drivers/input/touchscreen/himax/himax_83xxx_i2c/Makefile
@@ -50,6 +57,7 @@ jobs:
           find security/samsung/ -type f -name "*.[ch]" -exec sed -i 's|"security/integrity/integrity.h"|"../../integrity/integrity.h"|g' {} +
           find security/samsung/ -type f -name "*.[ch]" -exec sed -i 's|"drivers/md/dm.h"|"../../../drivers/md/dm.h"|g' {} +
 
+          
       - name: Build Kernel
         run: |
           export ARCH=arm64
