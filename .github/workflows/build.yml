@@ -43,6 +43,26 @@ jobs:
           echo "Fixing Samsung's missing Himax directory..."
           mkdir -p drivers/input/touchscreen/himax/himax_83xxx_i2c
           touch drivers/input/touchscreen/himax/himax_83xxx_i2c/Makefile
+          
+          echo "Injecting root include paths into Samsung's broken Makefiles..."
+          # This forces the compiler to search the root directory for missing headers
+          echo 'ccflags-y += -I$(srctree)' >> security/samsung/five/Makefile
+          echo 'ccflags-y += -I$(srctree)' >> security/samsung/defex_lsm/Makefile
+          
+          # Hard-patching dm.h just to be absolutely nuclear
+          sed -i 's|drivers/md/dm.h|../../../drivers/md/dm.h|g' security/samsung/five/five_dmverity.c
+
+      - name: Build Kernel
+        run: |
+          export ARCH=arm64
+          export CROSS_COMPILE=aarch64-linux-gnu-
+          
+          echo "Applying exynos850-a13xx_defconfig..."
+          make O=out LLVM=1 CC=clang KCFLAGS="-Wno-deprecated-declarations" exynos850-a13xx_defconfig
+          
+          echo "Starting compilation on all CPU cores..."
+          make -j$(nproc --all) O=out LLVM=1 CC=clang KCFLAGS="-Wno-deprecated-declarations"
+          
 
       - name: Build Kernel
         run: |
