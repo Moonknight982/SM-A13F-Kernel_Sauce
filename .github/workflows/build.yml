@@ -30,7 +30,7 @@ jobs:
           echo 'source "drivers/gpu/arm/bv_r38p1/Kconfig"' >> drivers/gpu/arm/Kconfig
           echo 'endmenu' >> drivers/gpu/arm/Kconfig
 
-      - name: Patch Defconfig & Fix Broken Paths
+      - name: Patch Defconfig & Sledgehammer Samsung Paths
         run: |
           echo "Injecting Droidspaces support into the defconfig..."
           CONFIG_FILE="arch/arm64/configs/exynos850-a13xx_defconfig"
@@ -44,43 +44,24 @@ jobs:
           mkdir -p drivers/input/touchscreen/himax/himax_83xxx_i2c
           touch drivers/input/touchscreen/himax/himax_83xxx_i2c/Makefile
           
-          echo "Injecting root include paths into Samsung's broken Makefiles..."
-          # This forces the compiler to search the root directory for missing headers
-          echo 'ccflags-y += -I$(srctree)' >> security/samsung/five/Makefile
-          echo 'ccflags-y += -I$(srctree)' >> security/samsung/defex_lsm/Makefile
-          
-          # Hard-patching dm.h just to be absolutely nuclear
-          sed -i 's|drivers/md/dm.h|../../../drivers/md/dm.h|g' security/samsung/five/five_dmverity.c
-
-      - name: Build Kernel
-        run: |
-          export ARCH=arm64
-          export CROSS_COMPILE=aarch64-linux-gnu-
-          
-          echo "Applying exynos850-a13xx_defconfig..."
-          make O=out LLVM=1 CC=clang KCFLAGS="-Wno-deprecated-declarations" exynos850-a13xx_defconfig
-          
-          echo "Starting compilation on all CPU cores..."
-          make -j$(nproc --all) O=out LLVM=1 CC=clang KCFLAGS="-Wno-deprecated-declarations"
-          
-
-      - name: Build Kernel
-        run: |
-          export ARCH=arm64
-          export CROSS_COMPILE=aarch64-linux-gnu-
-          
-          echo "Fixing broken include paths GLOBALLY in Samsung security drivers..."
+          echo "BRUTE FORCING EVERY BROKEN SAMSUNG INCLUDE PATH..."
+          # This forces loop.h, dm.h, and integrity.h to point to the correct locations globally
           find security/samsung/ -type f -name "*.[ch]" -exec sed -i 's|"drivers/block/loop.h"|<linux/loop.h>|g' {} +
           find security/samsung/ -type f -name "*.[ch]" -exec sed -i 's|<drivers/block/loop.h>|<linux/loop.h>|g' {} +
           find security/samsung/ -type f -name "*.[ch]" -exec sed -i 's|"security/integrity/integrity.h"|"../../integrity/integrity.h"|g' {} +
+          find security/samsung/ -type f -name "*.[ch]" -exec sed -i 's|"drivers/md/dm.h"|"../../../drivers/md/dm.h"|g' {} +
+
+      - name: Build Kernel
+        run: |
+          export ARCH=arm64
+          export CROSS_COMPILE=aarch64-linux-gnu-
           
           echo "Applying exynos850-a13xx_defconfig..."
           make O=out LLVM=1 CC=clang KCFLAGS="-Wno-deprecated-declarations" exynos850-a13xx_defconfig
           
           echo "Starting compilation on all CPU cores..."
           make -j$(nproc --all) O=out LLVM=1 CC=clang KCFLAGS="-Wno-deprecated-declarations"
-          
-          
+
       - name: Upload Kernel Artifact
         uses: actions/upload-artifact@v4
         with:
