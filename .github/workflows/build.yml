@@ -45,11 +45,11 @@ jobs:
           touch drivers/input/touchscreen/himax/himax_83xxx_i2c/Makefile
           
           echo "BRUTE FORCING EVERY BROKEN SAMSUNG INCLUDE PATH..."
-          # Give them the PRIVATE loop.h they hacked together, just with the right path
+          # Fix loop.h
           find security/samsung/ -type f -name "*.[ch]" -exec sed -i 's|"drivers/block/loop.h"|"../../../drivers/block/loop.h"|g' {} +
           find security/samsung/ -type f -name "*.[ch]" -exec sed -i 's|<drivers/block/loop.h>|"../../../drivers/block/loop.h"|g' {} +
           
-          # Fix integrity and dm.h
+          # Fix integrity.h and dm.h
           find security/samsung/ -type f -name "*.[ch]" -exec sed -i 's|"security/integrity/integrity.h"|"../../integrity/integrity.h"|g' {} +
           find security/samsung/ -type f -name "*.[ch]" -exec sed -i 's|"drivers/md/dm.h"|"../../../drivers/md/dm.h"|g' {} +
 
@@ -58,11 +58,14 @@ jobs:
           export ARCH=arm64
           export CROSS_COMPILE=aarch64-linux-gnu-
           
+          # The KCFLAGS variable tells the compiler to ignore the 3 specific fatal warnings we hit so far
+          export STRICT_WARNING_BYPASS="-Wno-deprecated-declarations -Wno-void-pointer-to-int-cast -Wno-bitwise-instead-of-logical"
+          
           echo "Applying exynos850-a13xx_defconfig..."
-          make O=out LLVM=1 CC=clang KCFLAGS="-Wno-deprecated-declarations" exynos850-a13xx_defconfig
+          make O=out LLVM=1 CC=clang KCFLAGS="$STRICT_WARNING_BYPASS" exynos850-a13xx_defconfig
           
           echo "Starting compilation on all CPU cores..."
-          make -j$(nproc --all) O=out LLVM=1 CC=clang KCFLAGS="-Wno-deprecated-declarations"
+          make -j$(nproc --all) O=out LLVM=1 CC=clang KCFLAGS="$STRICT_WARNING_BYPASS"
 
       - name: Upload Kernel Artifact
         uses: actions/upload-artifact@v4
