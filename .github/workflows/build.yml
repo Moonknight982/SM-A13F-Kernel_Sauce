@@ -49,16 +49,17 @@ jobs:
           export ARCH=arm64
           export CROSS_COMPILE=aarch64-linux-gnu-
           
-          # Fix the broken Samsung FIVE include path
-          echo "Fixing broken loop.h path in Samsung security driver..."
-          sed -i 's|"drivers/block/loop.h"|<linux/loop.h>|g' security/samsung/five/five_porting.h
+          echo "Fixing broken include paths GLOBALLY in Samsung security drivers..."
+          find security/samsung/ -type f -name "*.[ch]" -exec sed -i 's|"drivers/block/loop.h"|<linux/loop.h>|g' {} +
+          find security/samsung/ -type f -name "*.[ch]" -exec sed -i 's|<drivers/block/loop.h>|<linux/loop.h>|g' {} +
+          find security/samsung/ -type f -name "*.[ch]" -exec sed -i 's|"security/integrity/integrity.h"|"../../integrity/integrity.h"|g' {} +
           
           echo "Applying exynos850-a13xx_defconfig..."
-          # Added KCFLAGS to ignore OpenSSL deprecation warnings
           make O=out LLVM=1 CC=clang KCFLAGS="-Wno-deprecated-declarations" exynos850-a13xx_defconfig
           
           echo "Starting compilation on all CPU cores..."
           make -j$(nproc --all) O=out LLVM=1 CC=clang KCFLAGS="-Wno-deprecated-declarations"
+          
           
       - name: Upload Kernel Artifact
         uses: actions/upload-artifact@v4
