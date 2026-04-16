@@ -45,9 +45,11 @@ jobs:
           touch drivers/input/touchscreen/himax/himax_83xxx_i2c/Makefile
           
           echo "BRUTE FORCING EVERY BROKEN SAMSUNG INCLUDE PATH..."
-          # This forces loop.h, dm.h, and integrity.h to point to the correct locations globally
-          find security/samsung/ -type f -name "*.[ch]" -exec sed -i 's|"drivers/block/loop.h"|<linux/loop.h>|g' {} +
-          find security/samsung/ -type f -name "*.[ch]" -exec sed -i 's|<drivers/block/loop.h>|<linux/loop.h>|g' {} +
+          # Give them the PRIVATE loop.h they hacked together, just with the right path
+          find security/samsung/ -type f -name "*.[ch]" -exec sed -i 's|"drivers/block/loop.h"|"../../../drivers/block/loop.h"|g' {} +
+          find security/samsung/ -type f -name "*.[ch]" -exec sed -i 's|<drivers/block/loop.h>|"../../../drivers/block/loop.h"|g' {} +
+          
+          # Fix integrity and dm.h
           find security/samsung/ -type f -name "*.[ch]" -exec sed -i 's|"security/integrity/integrity.h"|"../../integrity/integrity.h"|g' {} +
           find security/samsung/ -type f -name "*.[ch]" -exec sed -i 's|"drivers/md/dm.h"|"../../../drivers/md/dm.h"|g' {} +
 
